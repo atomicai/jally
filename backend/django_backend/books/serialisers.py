@@ -12,7 +12,11 @@ class BookSerializer(serializers.ModelSerializer):
         fields = '__all__'
         lookup_fields = 'pk'
 
-    # def create(self, validated_data):
-    #     project = Project.objects.create(**validated_data)
-    #     Info.objects.create(project=project)
-    #     return project
+    def create(self, validated_data):
+        # print(Author.objects.get(validated_data.get('author')))
+        # print(validated_data.get('author'))
+        # project = Project.objects.create(**validated_dat/)
+        # Info.objects.create(project=project)
+        book = Book.objects.create(**validated_data)
+        return book
+
