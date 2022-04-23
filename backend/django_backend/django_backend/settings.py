@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-in+c8v5p%-%87na2v)31ejq!hk5h04@8+tp0cgx0ulrf6e=bmi
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*', 'ja.outtrip.ru']
 
 
 # Application definition
@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'user_app',
+    'books'
 ]
 
 MIDDLEWARE = [
@@ -133,7 +134,7 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=2),
 }
 
-CORS_ORIGIN_WHITELIST = ["http://localhost:3000", "http://127.0.0.1:3000"]
+CORS_ORIGIN_WHITELIST = ["http://localhost:3001", "http://127.0.0.1:3001"]
 # конец настроек JWT токена
 
 
