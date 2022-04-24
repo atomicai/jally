@@ -54,13 +54,13 @@ machine.ASKED_QUERY = TeleState("ASKED_QUERY", machine)
 machine.CONFIRM_DATA = TeleState("CONFIRM_DATA", machine)
 machine.CONFIRM_DESCRIPTION = TeleState("CONFIRM_DESCRIPTION", machine)
 
-store = weaviate.WeaviateDocStore(progress_bar=False)
+store = weaviate.WeaviateDocStore(index="test", progress_bar=False)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-query_model = dpr.IEncoder.load(pathlib.Path(os.getcwd()) / os.environ.get("RETRIEVER_QUERY_WEIGHTS"))
+query_model = dpr.DEncoder.load(pathlib.Path(os.getcwd()) / os.environ.get("RETRIEVER_QUERY_WEIGHTS"))
 query_model = query_model.to(device)
 query_model = query_model.eval()
-query_processor = proc_dpr.IProcessor.load(pathlib.Path(os.getcwd()) / os.environ.get("RETRIEVER_QUERY_WEIGHTS"))
+query_processor = proc_dpr.TProcessor.load(pathlib.Path(os.getcwd()) / os.environ.get("RETRIEVER_QUERY_WEIGHTS"))
 ic(query_processor.query_tokenizer)
 
 
@@ -191,6 +191,31 @@ def fn_confirm(update):
     else:
         machine.ASKED_QUERY.activate()  # we are done
         return HTMLMessage("Рад, что тебе понравилось, обятельно приходи еще!")
+
+
+@machine.CONFIRM_DATA.on_message("text")
+def fn_confirm_txt(update, msg):
+    query = msg.text.strip()
+
+    doc = search_store(question=query, model=query_model, processor=query_processor)
+    response = doc.meta["title"]
+    description = doc.text
+
+    machine.set("CONFIRM_DATA", data={"query": query, "response": response, "description": description})
+    return HTMLMessage(
+        f"<u>Запрос:</u> {escape(query)}\n---\n<u>Response:</u> {response}",
+        reply_markup=InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("👌", callback_data="confirm_true"),
+                ],
+                [InlineKeyboardButton("Описание", callback_data="description")],
+                [
+                    InlineKeyboardButton('🤦', callback_data="confirm_false"),
+                ],
+            ]
+        ),
+    )
 
 
 @machine.CONFIRM_DESCRIPTION.on_update("callback_query")
