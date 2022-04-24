@@ -1,9 +1,9 @@
 import abc
 from typing import Dict, List, Optional, Union
 
-from nlp.ir.document_store import base
-from nlp.modeling.ir.module.base import LanguageModel
-from nlp.processing.ir.base import processor
+from jally.ir.document_store import base
+from jally.modeling.ir.module.base import LanguageModel
+from jally.processing.ir.base import processor
 
 
 class IR(abc.ABC):
