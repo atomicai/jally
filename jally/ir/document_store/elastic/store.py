@@ -11,8 +11,8 @@ import torch.nn as nn
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.exceptions import RequestError
 from elasticsearch.helpers import bulk, scan
+from jally.formatting.ir import tool
 from jally.ir.document_store.base import BaseDocStore, Document
-from nlp.formatting.ir import util
 from scipy.special import expit
 from tqdm.auto import tqdm
 
@@ -276,7 +276,7 @@ class ElasticDocStore(BaseDocStore):
 
         body = {
             "size": top_k,
-            "query": util.elastic_query_api(self.similarity, query_emb, embedding_field=self.embedding_field),
+            "query": tool.elastic_query_api(self.similarity, query_emb, embedding_field=self.embedding_field),
         }
 
         if filters:
@@ -363,7 +363,7 @@ class ElasticDocStore(BaseDocStore):
         )
 
         with tqdm(total=document_count, position=0, unit="Docs", desc="Update embeddings") as pb:
-            for chunk in util.get_batches_from_generator(response, batch_size):
+            for chunk in tool.get_batches_from_generator(response, batch_size):
                 document_batch = [self._convert_es_hit_to_document(hit, return_embedding=False) for hit in chunk]
                 # TODO: Replace fake generating with nn.Module
                 # embeddings = retriever.embed_passages(document_batch)  # type: ignore

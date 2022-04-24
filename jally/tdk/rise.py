@@ -10,7 +10,8 @@ import numpy as np
 import torch
 from flask import Flask, jsonify, request, send_from_directory
 from icecream import ic
-from jally.ir.document_store import base, weaviate
+from jally.ir.document_store import base, elastic, weaviate
+from jally.ir.engine import bm25
 
 #
 from jally.modeling.ir.module import dpr
@@ -52,9 +53,12 @@ machine = machine.TeleStateMachine(__name__, database_driver=memo, teleflask_or_
 
 machine.ASKED_QUERY = TeleState("ASKED_QUERY", machine)
 machine.CONFIRM_DATA = TeleState("CONFIRM_DATA", machine)
+machine.FOUND_RESULT = TeleState("FOUND_RESULT", machine)
 machine.CONFIRM_DESCRIPTION = TeleState("CONFIRM_DESCRIPTION", machine)
 
 store = weaviate.WeaviateDocStore(index="test", progress_bar=False)
+
+ir_bm25 = bm25.BM25Retriever(store=elastic.ElasticDocStore())
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 query_model = dpr.DEncoder.load(pathlib.Path(os.getcwd()) / os.environ.get("RETRIEVER_QUERY_WEIGHTS"))
@@ -106,8 +110,19 @@ def search_store(
     for q, e in zip(queries, embeddings):
         res = store.query_by_embedding(query_emb=e)
         ic(f"for query {q} response is {res[0].meta['title']}")
-        response.append(res[0])
+        response.append(res)
     return response[0]
+
+
+def rank_store(
+    question: str,
+):
+    docs = list(ir_bm25.retrieve_top_k(query=question))[0][0]
+    if len(docs) > 0:
+        res = docs[0]
+    else:
+        res = base.Document.from_dict({"text": "", "title": "Такой книги не нашел. Уточни, пожалуйста, более подробно :-)"})
+    return res
 
 
 @app.route('/', defaults={'path': ''})
@@ -138,13 +153,53 @@ def cmd_cancel(update, text):
     return TextMessage("All actions canceled.", parse_mode="text")
 
 
+def hi(answer: str, docs: List[base.Document]):
+    pos = 0
+    while pos < len(docs):
+        if docs[pos].text != answer:
+            return docs[pos]
+        pos += 1
+    return None
+
+
 @machine.ASKED_QUERY.on_message("text")
 def fn_query(update, msg):
     query = msg.text.strip()
 
-    doc = search_store(question=query, model=query_model, processor=query_processor)
-    response = doc.meta["title"]
-    description = doc.text
+    top_docs = search_store(question=query, model=query_model, processor=query_processor)
+
+    elastic_doc = rank_store(question=query)
+    elastic_title = elastic_doc.meta["title"]
+    elastic_desc = elastic_doc.text
+
+    if elastic_desc != "":
+        recommended_doc = hi(elastic_desc, top_docs)
+        machine.set(
+            "FOUND_RESULT",
+            data={
+                "query": query,
+                "response": elastic_title,
+                "description": elastic_desc,
+                "recommend": recommended_doc.meta["title"],
+                "recommend_description": recommended_doc.text,
+            },
+        )
+        return HTMLMessage(
+            f"Я нашел вот такую книгу: {elastic_title}. Поищем на нее похожие ?",
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [
+                        InlineKeyboardButton("👌", callback_data="confirm_true"),
+                    ],
+                    [
+                        InlineKeyboardButton('🤦', callback_data="confirm_false"),
+                    ],
+                ]
+            ),
+        )
+    else:
+        machine.set("ASKED_QUERY")
+        return TextMessage(f"По запросу  <u>{query} </u> не нашел ничего. \nНапиши подробнее, пожалуйста.", parse_mode="html")
 
     machine.set("CONFIRM_DATA", data={"query": query, "response": response, "description": description})
     return HTMLMessage(
@@ -164,6 +219,31 @@ def fn_query(update, msg):
 
 
 # end def
+@machine.FOUND_RESULT.on_update("callback_query")
+def fn_found_result(update):
+    if update.callback_query.data == "confirm_true":
+        query = machine.CURRENT.data["query"]
+        response = machine.CURRENT.data["recommend"]
+        recommend = machine.CURRENT.data["recommend"]
+        description = machine.CURRENT.data["recommend_description"]
+        machine.set("CONFIRM_DATA", data={"query": query, "response": recommend, "description": description})
+        return HTMLMessage(
+            f"<u>Запрос:</u> {escape(query)}\n---\n<u>Response:</u> {response}",
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [
+                        InlineKeyboardButton("👌", callback_data="confirm_true"),
+                    ],
+                    [InlineKeyboardButton("Описание", callback_data="description")],
+                    [
+                        InlineKeyboardButton('🤦', callback_data="confirm_false"),
+                    ],
+                ]
+            ),
+        )
+    else:
+        machine.ASKED_QUERY.activate()
+        return TextMessage(f"Okay. Давай поищем что-нибудь другое :-)", parse_mode="html")
 
 
 @machine.CONFIRM_DATA.on_update("callback_query")
