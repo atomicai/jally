@@ -3,10 +3,10 @@ import logging
 import string
 from typing import Dict, Generator, List, Optional, Union
 
+from jally.ir.document_store.base.store import Document
+from jally.ir.document_store.elastic.store import ElasticDocStore
+from jally.ir.engine import base as base_engine
 from more_itertools import chunked
-from nlp.ir.document_store.base.store import Document
-from nlp.ir.document_store.elastic.store import ElasticDocStore
-from nlp.ir.engine import base as base_engine
 
 logger = logging.getLogger(__name__)
 
