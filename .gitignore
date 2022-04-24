@@ -6,6 +6,15 @@ __pycache__/
 # C extensions
 *.so
 
+# Mac OS
+*.DS_Store
+
+# Jupyter Notebook
+*.ipynb
+
+# PyTorch weights
+weights/*
+
 # Distribution / packaging
 .Python
 build/
