@@ -9,6 +9,12 @@ __pycache__/
 # Mac OS
 *.DS_Store
 
+# Jupyter Notebook
+*.ipynb
+
+# PyTorch weights
+weights/*
+
 # Distribution / packaging
 .Python
 build/
