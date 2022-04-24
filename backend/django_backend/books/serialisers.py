@@ -13,10 +13,6 @@ class BookSerializer(serializers.ModelSerializer):
         lookup_fields = 'pk'
 
     def create(self, validated_data):
-        # print(Author.objects.get(validated_data.get('author')))
-        # print(validated_data.get('author'))
-        # project = Project.objects.create(**validated_dat/)
-        # Info.objects.create(project=project)
         book = Book.objects.create(**validated_data)
         return book
 

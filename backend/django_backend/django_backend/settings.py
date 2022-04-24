@@ -25,8 +25,9 @@ SECRET_KEY = 'django-insecure-in+c8v5p%-%87na2v)31ejq!hk5h04@8+tp0cgx0ulrf6e=bmi
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*', 'ja.outtrip.ru']
+ALLOWED_HOSTS = ['*', 'ja.outtrip.ru','https://b3d0-37-193-156-134.eu.ngrok.io']
 
+CSRF_TRUSTED_ORIGINS = ['https://b3d0-37-193-156-134.eu.ngrok.io', 'https://*.127.0.0.1']
 
 # Application definition
 
@@ -40,7 +41,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_filters',
     'user_app',
-    'books'
+    'books',
+    'periodicals'
 ]
 
 MIDDLEWARE = [
@@ -135,7 +137,7 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=2),
 }
 
-CORS_ORIGIN_WHITELIST = ["http://localhost:3001", "http://127.0.0.1:3001"]
+CORS_ORIGIN_WHITELIST = ["http://localhost:3000", "http://127.0.0.1:3000","https://f484-45-130-87-4.eu.ngrok.io/","https://84af-78-109-36-14.jp.ngrok.io/"]
 # конец настроек JWT токена
 
 
@@ -146,4 +148,9 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.DjangoModelPermissions",),
+}
+
+SIMPLE_JWT = {
+    'USER_ID_FIELD': 'id',
+    'ALGORITHM': 'HS512',
 }
